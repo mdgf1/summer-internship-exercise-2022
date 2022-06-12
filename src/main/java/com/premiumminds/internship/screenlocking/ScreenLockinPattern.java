@@ -1,6 +1,8 @@
 package com.premiumminds.internship.screenlocking;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Created by aamado on 05-05-2022.
@@ -14,6 +16,8 @@ class ScreenLockinPattern implements IScreenLockinPattern {
   * @return number of patterns
   */
   public Future<Integer> countPatternsFrom(int firstPoint,int length) {
-    throw new RuntimeException("Not Implemented Yet");
+    ExecutorService ex = Executors.newSingleThreadExecutor();
+    Future<Integer> future = ex.submit(new MatrixCount(firstPoint, length, 9));
+    return future;
   };
 }
