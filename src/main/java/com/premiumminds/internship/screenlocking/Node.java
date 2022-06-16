@@ -1,6 +1,7 @@
 package com.premiumminds.internship.screenlocking;
 
 import java.util.Arrays;
+import java.lang.Math;
 
 /**
  * contains:
@@ -27,29 +28,27 @@ class Node {
   /**
    * contructor
    * @param value Node value(position in the matrix)
-   * @param numOfNodes number of total nodes in the matrix
+   * @param numberOfNodes number of nodes in matrix
    */
-  public Node(int value, int numOfNodes){
+  public Node(int value, int numberOfNodes){
     this.value = value;
-    usedNodes = new boolean[numOfNodes];
+    usedNodes = new boolean[numberOfNodes+1];
     Arrays.fill(usedNodes, false);
     usedNodes[value]=true;
     numUsed = 1;
-
   }
 
   /**
    * contructor
    * @param value Node value(position in the matrix)
-   * @param usedNodes array with path history
+   * @param previous previous node
+   * @param numberOfNodes number of nodes in matrix
    */
-  public Node(int value, boolean[] used, int numUsed, int numOfNodes){
-    this(value, numOfNodes);
-    usedNodes = used;
-    usedNodes[value]=true;
-    
-    this.numUsed = numUsed;
-
+  public Node(int value, Node previous, int numberOfNodes){
+    this(value, numberOfNodes);
+    usedNodes = previous.getUsedCopy();
+    usedNodes[value] = true;
+    this.numUsed = previous.getNumUsed()+1;
   }
 
   /**
@@ -77,7 +76,7 @@ class Node {
   }
 
   /**
-   * copys usedNodes array since array is mutable
+   * copies usedNodes array since array is mutable
    * @return unlinked copy of usedNodes
    */
   public boolean[] getUsedCopy(){

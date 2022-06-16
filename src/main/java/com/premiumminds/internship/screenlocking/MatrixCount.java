@@ -3,6 +3,7 @@ package com.premiumminds.internship.screenlocking;
 import java.util.concurrent.Future;
 import java.util.concurrent.Callable;
 import java.util.ArrayList;
+import java.lang.Math;
 
 /**
  * class needs to exist since it's
@@ -11,11 +12,14 @@ import java.util.ArrayList;
  */
 class MatrixCount implements Callable {
   /**
-   * constant for number of nodes in the matrix
-   * if changed with getJump() function appropriately
+   * constant for number of nodes in row
    * gives solution of 4x4/5x5 matrixs
    */
-  final private int numOfNodes;
+  final private int sizeOfMatrix;
+  /**
+   * sizeOfMatrix squared
+   */
+  private int numberOfNodes;
 
   /**
    * first key being pressed already inside
@@ -34,21 +38,30 @@ class MatrixCount implements Callable {
    * final count to be returned by call()
    */
   private Integer count;
-
+  /**
+   * matrix sizeOfMatrix by sizeOfMatrix containing all values
+   */
+  private int[][] table;
+  /**
+   * matrix numberOfNodes by numberOfNodes containing all conflicts
+   */
+  private ArrayList<ArrayList<ArrayList<Integer>>> conflicts;
 
   /**
    * contructor
    * @param firstPoint starting node
    * @param length max size of lock
-   * @param numOfNodes number of total nodes in the matrix
+   * @param sizeOfMatrix size of matrix
    */
-  public MatrixCount(int firstPoint, int length, int numOfNodes){
+  public MatrixCount(int firstPoint, int length, int sizeOfMatrix){
     this.length = length;
-    this.numOfNodes = numOfNodes+1;
-    this.firstNode = new Node(firstPoint, this.numOfNodes);
+    this.sizeOfMatrix = sizeOfMatrix;
+    this.numberOfNodes = (int)Math.pow(sizeOfMatrix, 2);
+    this.firstNode = new Node(firstPoint, numberOfNodes);
     this.edges = new ArrayList<Node>();
     edges.add(firstNode);
     this.count = 0;
+    initMatrix();
   }
 
   /**
@@ -60,63 +73,114 @@ class MatrixCount implements Callable {
     while(!edges.isEmpty()){
       //pop first node in edges
       current = edges.remove(0);
-
       //check if the bfs is over
       if(current.getNumUsed() == length){
         count += 1;
         continue;
       }
       //we try to connect all nodes to the current node n
-      for(int i = 1; i < numOfNodes; i++){
+      for(int i = 1; i <= numberOfNodes; i++){
         //checking if nodes are used/
         //if there is a node in the way
         if(!current.getUsed()[i] && !getJump(current, i)){
-          //copying the whole array this way is necessary
-          //because arrays are mutable
-          boolean[] newUsed = current.getUsedCopy();
           //push new node into edges
-          edges.add(new Node(i, newUsed, current.getNumUsed()+1, numOfNodes));
+          edges.add(new Node(i, current, numberOfNodes));
         }
       }
     }
     return count;
   }
 
+  /**
+   * a matrix containing all conflicts beetween two numbers in an ArrayList
+   * exemple in 3x3:
+   * conflicts.get(1).get(3) == conflicts.get(3)(1) == 2
+   */
+  public void initMatrix(){
+    //matrix containing all conflicts
+    ArrayList<ArrayList<ArrayList<Integer>>> conflicts = new ArrayList<ArrayList<ArrayList<Integer>>>(numberOfNodes+1);
+    for(int i = 0; i <= numberOfNodes; i++){
+      conflicts.add(new ArrayList<ArrayList<Integer>>(numberOfNodes+1));
+      for(int u = 0; u <= numberOfNodes; u++){
+        conflicts.get(i).add(new ArrayList<Integer>(0));
+      }
+    }
+    this.conflicts = conflicts;
+
+    //matrix containing all numbers in their row/column index
+    //0 index is ignored
+    int[][] matrix = new int[sizeOfMatrix+1][sizeOfMatrix+1];
+    for(int i = 0; i < numberOfNodes; i++){
+      //generating matrix for later generation of conflicts
+      matrix[i/sizeOfMatrix+1][i%sizeOfMatrix+1] = i+1;
+    }
+    this.table = matrix;
+  }
 
   /**
    * identifies conflicts when connecting
    * nodes that pass through other unused nodes
    * 
    * only function needed to change along with
-   * the numOfNodes constant in order get solution
+   * the sizeOfMatrix constant in order get solution
    * for more nodes
    * @param current node currently being explored
-   * @param i possibly next node being explored
+   * @param possible possibly next node being explored
    * @return true if there is a node between currentNode and i
    */
-  public boolean getJump(Node current, int i){
-    
-    int[][] conflicts = new int[numOfNodes][numOfNodes];
+  public boolean getJump(Node current, int possible){
+    ArrayList<Integer> next = this.conflicts.get(current.getValue()).get(possible);
 
-    //horizontal conflicts
-    conflicts[1][3] = conflicts[3][1] = 2;
-    conflicts[4][6] = conflicts[6][4] = 5;
-    conflicts[7][9] = conflicts[9][7] = 8;
+    for(int w = 0; w < next.size(); w++){
+      if(next.get(w) != 0 && !current.getUsed()[next.get(w)]){
+        return true;
+      }
+    }
+    //generates actual conflicts
+    //index of columns/row being analized
+    int cur1=((current.getValue()-1)/sizeOfMatrix)+1;
+    int cur2=((current.getValue()-1)%sizeOfMatrix)+1;
+    int num1=(possible-1)/sizeOfMatrix+1;
+    int num2=(possible-1)%sizeOfMatrix+1;
+    int val = current.getValue();
+
+    int i = Math.min(num1, cur1)+1;
+    int u = Math.min(num2, cur2)+1;
+    double slope = (double)Math.abs(cur1-num1)/(double)Math.abs(cur2-num2);
+
     //vertical conflicts
-    conflicts[1][7] = conflicts[7][1] = 4;
-    conflicts[2][8] = conflicts[8][2] = 5;
-    conflicts[3][9] = conflicts[9][3] = 6;
-    //diagonal conflicts
-    conflicts[1][9] = conflicts[9][1] = 5;
-    conflicts[3][7] = conflicts[7][3] = 5;
-    //...
-    //possible other conflicts although this number
-    //grows exponentially with the value n on nxn matrixs
-    //with bigged matrixs this if statement would have to be 
-    //altered because 1 link could lead to multiple conflicts
-    int u = conflicts[current.getValue()][i];
-    if(u != 0 && !current.getUsed()[u]){
-      return true;
+    if(cur2 == num2){
+      if(Math.abs(cur1-num1) > 1){
+        for(; i < Math.max(num1, cur1); i++){
+          this.conflicts.get(val).get(possible).add(table[i][cur2]);
+          this.conflicts.get(possible).get(val).add(table[i][cur2]);
+          if(!current.getUsed()[table[i][cur2]]){
+            return true;
+          }
+        }
+      }
+    }else if(cur1 == num1){//horizontal conflicts
+      if(Math.abs(cur2-num2) > 1){  
+        for(; u < Math.max(num2, cur2); u++){
+          this.conflicts.get(val).get(possible).add(table[cur1][u]);
+          this.conflicts.get(possible).get(val).add(table[cur1][u]);
+          if(!current.getUsed()[table[cur1][u]]){
+            return true;
+          }
+        }
+      }
+    }else{//diagonal
+      for(; u < Math.max(num2, cur2); u++){
+        for(; i < Math.max(num1, cur1); i++){
+          if(slope == (double)Math.abs(cur1-i)/(double)Math.abs(cur2-u)){
+            this.conflicts.get(val).get(possible).add(table[i][u]);
+            this.conflicts.get(possible).get(val).add(table[i][u]);
+            if(!current.getUsed()[table[i][u]]){
+              return true;
+            }
+          }
+        }
+      }
     }
     return false;
   }

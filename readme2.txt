@@ -13,3 +13,26 @@ que deixa de fazer sentido fazer os conflitos todos 1 a 1 linha a linha.
 
 Obrigado por ler,
 Miguel Fonseca
+
+Update:
+
+Fiz uma solução mudelar e resolvi todos os conflitos em códigos de n por n,
+No entanto existe um crescimento exponencial de códigos possíveis, o que faz com que se torne impossível com o meu algoritmo a testagem de qualquer tipo de problema a partir de um certo tamanho
+pois todos os testes passam a dar Timeout error, o tamanho máximo que consegui testar em todos os codigos foi:
+	
+	tamanho do codigo || tamanho do tabuleiro
+
+			9					3
+			6					4
+			5 					5
+			4 					6
+			4 					7
+			4 					8
+			4 					9
+			3 					10
+			3 					11
+			3 					12
+			3 					13
+			...					...
+
+provavelmente existem multiplas soluções mais eficientes e existem até maneiras de tornar a minha solução mais eficiente, no entanto sinto que esta solução é boa o suficiente para o problema pedido
